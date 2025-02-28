@@ -1,0 +1,85 @@
+Here's a basic example of an Ansible playbook along with inventory files to manage a simple infrastructure, such as deploying an Nginx web server on multiple hosts. This example assumes you're managing multiple machines (hosts) in your environment.
+
+1. Ansible Inventory File (inventory.ini)
+The inventory file defines the hosts (servers) where you want to run the Ansible playbook.
+
+ini
+Copy
+Edit
+# inventory.ini
+
+[webservers]
+webserver1 ansible_host=192.168.1.101
+webserver2 ansible_host=192.168.1.102
+
+[all:vars]
+ansible_user=ubuntu
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+ansible_python_interpreter=/usr/bin/python3
+[webservers]: This is a group name. It can contain multiple hosts, and all hosts in this group will be managed by the playbook.
+ansible_host: The IP address or DNS name of each host.
+ansible_user: The SSH user (e.g., ubuntu for Ubuntu EC2 instances).
+ansible_ssh_private_key_file: The SSH private key used to connect to the server.
+ansible_python_interpreter: The path to the Python interpreter on the remote system (useful if Python isn't installed at the default location).
+2. Ansible Playbook (deploy_nginx.yml)
+This playbook will install and start Nginx on all the servers defined in the inventory.
+
+yaml
+Copy
+Edit
+# deploy_nginx.yml
+
+---
+- name: Deploy Nginx on Web Servers
+  hosts: webservers
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Start Nginx service
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Create a simple index.html file
+      copy:
+        dest: /var/www/html/index.html
+        content: "Welcome to Ansible Managed Nginx Server!"
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+    - name: Allow HTTP traffic in firewall
+      ufw:
+        rule: allow
+        name: 'Nginx HTTP'
+Explanation of the Playbook:
+hosts: webservers: This tells Ansible to run the playbook on all hosts in the webservers group defined in the inventory file.
+become: yes: This grants sudo privileges to the tasks that require administrative rights.
+Tasks:
+Update apt cache: Updates the package manager's cache on the remote system.
+Install Nginx: Installs the Nginx package if it's not already installed.
+Start Nginx service: Ensures that Nginx is started and enabled to start on boot.
+Create a simple index.html: Copies a simple HTML page to the web server's root directory.
+Allow HTTP traffic: Configures the firewall (using UFW here) to allow HTTP traffic for Nginx.
+3. Running the Playbook
+To execute the Ansible playbook, run the following command:
+
+bash
+Copy
+Edit
+ansible-playbook -i inventory.ini deploy_nginx.yml
+-i inventory.ini: Specifies the inventory file containing the hosts you want to manage.
+deploy_nginx.yml: Specifies the playbook you want to run.
+4. Verify the Installation
+After the playbook runs successfully, you can verify the installation by navigating to the IP addresses of webserver1 and webserver2 in a web browser. You should see the "Welcome to Ansible Managed Nginx Server!" message.
+
+
